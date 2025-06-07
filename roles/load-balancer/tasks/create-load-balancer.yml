@@ -1,0 +1,52 @@
+---
+- name: Install openssl
+  apt:
+    name: openssl
+    state: present
+    update_cache: true
+
+- name: Create SSL Directory
+  file:
+    path: "{{ ssl_cert_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Generate Private Key
+  community.crypto.openssl_privatekey:
+    path: "{{ nginx_ssl_key_path }}"
+    size: 2048
+    mode: 0600
+
+- name: Generate Certificate Signing Request
+  community.crypto.openssl_csr:
+    path: "{{ nginx_ssl_csr_path }}"
+    privatekey_path: "{{ nginx_ssl_key_path }}"
+    common_name: localhost
+
+- name: Generate self-signed certificate
+  community.crypto.x509_certificate:
+    path: "{{ nginx_ssl_cert_path }}"
+    privatekey_path: "{{ nginx_ssl_key_path }}"
+    csr_path: "{{ nginx_ssl_csr_path }}"
+    provider: selfsigned
+    mode: 0644
+
+- name: Template Nginx Config
+  template:
+    src: templates/load-balancer.conf.j2
+    dest: /etc/nginx/sites-enabled/load-balancer.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Delete default Nginx Host
+  file:
+    path: "/etc/nginx/sites-enabled/default"
+    state: absent
+
+- name: Reload Nginx
+  service:
+    name: nginx
+    state: reloaded

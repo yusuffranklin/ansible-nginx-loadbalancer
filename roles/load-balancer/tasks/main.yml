@@ -1,0 +1,3 @@
+---
+- name: Create Load Balancer
+  include_tasks: create-load-balancer.yml
